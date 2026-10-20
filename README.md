@@ -40,12 +40,12 @@
 +---------------------------------------------------------------------------------------------------+
 |                                  RACE CONDITION PREVENTION FLOW                                   |
 |                                                                                                   |
-|  User A (Selects A1) ---> [ Atomic Lock: findOneAndUpdate ] ---> Success ---> Broadcast Locked   |
+|  User A (Selects A1) ---> [ Atomic Lock: findOneAndUpdate ] ---> Success ---> Broadcast Locked    |
 |                                         |                                                         |
 |  User B (Selects A1) ---> [ Atomic Lock: findOneAndUpdate ] ---> Rejected ---> "Already Locked"   |
 |                                                                                                   |
 |  User A Checks Out   ---> [ State Transition: BOOKED ]      ---> Confirmed Ticket Issued          |
-|  User A Abandons     ---> [ TTL Timer (300s) Expires ]     ---> Auto-Reverted to AVAILABLE       |
+|  User A Abandons     ---> [ TTL Timer (300s) Expires ]     ---> Auto-Reverted to AVAILABLE        |
 +---------------------------------------------------------------------------------------------------+
 ```
 
@@ -189,17 +189,17 @@ The platform enforces strict Role-Based Access Control (RBAC) across three disti
 |                                    ROLE PRIVILEGE MATRIX                                           |
 |                                                                                                    |
 |  Capability                             Attendee              Organizer               Admin        |
-|  ------------------------------------------------------------------------------------------------- |
-|  Browse & Search Events                    ✅                     ✅                    ✅         |
-|  Interactive Seat Booking & Locks          ✅                     ✅                    ✅         |
-|  Digital Ticket Management                 ✅                     ✅                    ✅         |
-|  Cancel Own Registrations                  ✅                     ✅                    ✅         |
-|  Create & Publish Events                   ❌                     ✅                    ✅         |
-|  Custom Matrix Grid Builder                ❌                     ✅                    ✅         |
-|  Live Attendee Check-In Scanner            ❌                     ✅                    ✅         |
-|  Revenue & Capacity Analytics              ❌                     ✅                    ✅         |
-|  Global User Management & RBAC             ❌                     ❌                    ✅         |
-|  System-Wide Health & Deactivations        ❌                     ❌                    ✅         |
+|----------------------------------------------------------------------------------------------------|
+|  Browse & Search Events                    ✅                     ✅                    ✅        |
+|  Interactive Seat Booking & Locks          ✅                     ✅                    ✅        |
+|  Digital Ticket Management                 ✅                     ✅                    ✅        |
+|  Cancel Own Registrations                  ✅                     ✅                    ✅        |
+|  Create & Publish Events                   ❌                     ✅                    ✅        |
+|  Custom Matrix Grid Builder                ❌                     ✅                    ✅        |
+|  Live Attendee Check-In Scanner            ❌                     ✅                    ✅        |
+|  Revenue & Capacity Analytics              ❌                     ✅                    ✅        |
+|  Global User Management & RBAC             ❌                     ❌                    ✅        |
+|  System-Wide Health & Deactivations        ❌                     ❌                    ✅        |
 +----------------------------------------------------------------------------------------------------+
 ```
 
