@@ -49,6 +49,48 @@
 +---------------------------------------------------------------------------------------------------+
 ```
 
+### ⚔️ What Happens When Two People Click the Same Seat at the Same Millisecond?
+
+When **User A** and **User B** attempt to select and reserve the exact same seat simultaneously:
+
+1. **Both HTTP Requests Hit the Backend in Parallel:**
+   * Both clients send `POST /api/events/:eventId/seats/:seatId/lock` at nearly the exact same time.
+
+2. **MongoDB Enforces Document-Level Serialization (Atomic CAS):**
+   * MongoDB processes writes to an individual seat document sequentially using internal write locks.
+   * Both operations execute the atomic conditional query:
+     ```javascript
+     Seat.findOneAndUpdate(
+       {
+         _id: seatId,
+         $or: [
+           { status: 'AVAILABLE' },
+           { status: 'LOCKED', lockedUntil: { $lt: new Date() } }
+         ]
+       },
+       { status: 'LOCKED', lockedBy: userId, lockedUntil: lockExpiry },
+       { new: true }
+     )
+     ```
+
+3. **User A (The Winner by Microseconds):**
+   * Arrives first; the document evaluates `{ status: 'AVAILABLE' }` as `true`.
+   * MongoDB atomically writes `status: 'LOCKED'`, assigns `lockedBy: User_A_ID`, and sets `lockedUntil` to 5 minutes in the future.
+   * The server responds with `HTTP 200 OK`, returning the locked seat payload and triggering a live 5-minute checkout countdown in User A's browser.
+
+4. **User B (The Loser — Handled Gracefully):**
+   * Arrives microseconds later; the seat status is now `'LOCKED'` with an unexpired lease.
+   * The query condition evaluates to `false`, matching **0 documents** and returning `null`.
+   * The server intercepts this and immediately returns `HTTP 400 Bad Request` with the message:
+     ```json
+     { "success": false, "message": "Seat is already locked or booked by someone else" }
+     ```
+   * User B's UI displays an instant toast notification: *"Seat is already locked or booked by someone else"*, preventing any inconsistent state.
+
+5. **Sub-Second Real-Time Synchronization:**
+   * Upon User A's successful lock, the server broadcasts a `seatUpdated` payload to the Socket.IO room `event-${eventId}`.
+   * User B's seat map (and every other connected user's map in that venue) instantly flips that seat to yellow/gray (locked) in real time without refreshing.
+
 ---
 
 ## 🌟 Key Highlights
@@ -152,7 +194,6 @@ The application is configured with robust defensive thresholds to ensure system 
 | **Brute Force** | Account Lockout Threshold | **5 failed attempts** | Locks account to prevent dictionary attacks |
 | **Brute Force** | Account Lockout Duration | **15 minutes (`423 Locked`)** | Cool-off window before retrying credentials |
 | **Payload** | JSON & URL-Encoded Cap | **10 KB max body size** | Prevents memory allocation denial-of-service |
-| **Storage** | File Upload Limit | **5 MB (Multer)** | Caps image uploads (`JPEG`, `PNG`, `WebP`, `GIF`) |
 | **Network** | Frontend Request Timeout | **15,000 ms (15s)** | Axios interceptor drops hanging connections |
 | **Network** | Search Debounce Delay | **300 ms** | Eliminates rapid backend regex and database churn |
 | **Scale** | Event Venue Capacity | **1 to 100,000 attendees** | Supports small workshops to stadium-scale arenas |
