@@ -1,16 +1,17 @@
 <!-- PROJECT LOGO / HEADER -->
 <div align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&height=220&section=header&text=Event%20Booking%20%26%20Seat%20Engine&fontSize=42&animation=fadeIn&fontAlignY=38&desc=Real-Time%20Seat%20Reservation%20%E2%80%A2%20Atomic%20Concurrency%20Control%20%E2%80%A2%20WebSockets&descAlignY=58&descAlign=50" width="100%" alt="Header Banner" />
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&height=220&section=header&text=Event%20Booking%20System&fontSize=48&animation=fadeIn&fontAlignY=38&desc=Real-Time%20Seat%20Reservation%20%7C%20Atomic%20Concurrency%20Control&descAlignY=58&descAlign=50" width="100%" alt="Event Booking System Banner" />
 
   <p align="center">
     <strong>A high-concurrency event management and ticketing platform engineered to eliminate double-booking using atomic database operations and sub-second WebSocket synchronization.</strong>
   </p>
 
   <p align="center">
-    <a href="https://github.com/indrajithas673/event-booking-system/stargazers"><img src="https://img.shields.io/github/stars/indrajithas673/event-booking-system?style=for-the-badge&color=f59e0b" alt="Stars" /></a>
-    <a href="https://github.com/indrajithas673/event-booking-system/network/members"><img src="https://img.shields.io/github/forks/indrajithas673/event-booking-system?style=for-the-badge&color=3b82f6" alt="Forks" /></a>
     <a href="https://github.com/indrajithas673/event-booking-system/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge" alt="License" /></a>
     <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-v18+-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node" /></a>
+    <a href="https://expressjs.com/"><img src="https://img.shields.io/badge/Express.js-v5.0-404D59?style=for-the-badge&logo=express&logoColor=white" alt="Express" /></a>
+    <a href="https://www.mongodb.com/"><img src="https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" /></a>
+    <a href="https://socket.io/"><img src="https://img.shields.io/badge/Socket.IO-v4-010101?style=for-the-badge&logo=socketdotio&logoColor=white" alt="Socket.IO" /></a>
     <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-v19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" /></a>
   </p>
 
@@ -80,31 +81,33 @@ The system follows an asynchronous, decoupled client-server architecture with an
 ```mermaid
 graph TB
     subgraph Client ["Client (React 19 + Tailwind CSS)"]
-        UI[Interactive Seat Grid]
-        SocketClient[Socket.IO Client]
-        HTTPClient[Axios Interceptor]
+        UI["Interactive Seat Grid"]
+        SocketClient["Socket.IO Client"]
+        HTTPClient["Axios Interceptor"]
     end
 
     subgraph Server ["Server (Express 5 REST API + Socket.IO)"]
-        GW[Reverse Proxy / CORS / Helmet]
-        RL[Tiered Rate Limiters]
-        AuthMid[JWT Auth Guard & RBAC]
-        Controllers[Event & Booking Controllers]
-        SocketServer[Socket.IO Room Manager]
+        GW["Reverse Proxy / CORS / Helmet"]
+        RL["Tiered Rate Limiters"]
+        AuthMid["JWT Auth Guard & RBAC"]
+        Controllers["Event & Booking Controllers"]
+        SocketServer["Socket.IO Room Manager"]
     end
 
     subgraph DataStore ["Persistence Layer (MongoDB)"]
-        Seats[(Seats Collection)]
-        Events[(Events Collection)]
-        Users[(Users Collection)]
-        Registrations[(Registrations Collection)]
+        Seats[("Seats Collection")]
+        Events[("Events Collection")]
+        Users[("Users Collection")]
+        Registrations[("Registrations Collection")]
     end
 
     UI -->|1. Select Seat| HTTPClient
     HTTPClient -->|2. POST /seats/:id/lock| GW
-    GW --> RL --> AuthMid --> Controllers
+    GW --> RL
+    RL --> AuthMid
+    AuthMid --> Controllers
     Controllers -->|3. Atomic CAS Update| Seats
-    Seats -->>|4. Return Updated State| Controllers
+    Seats -.->|4. Return Updated State| Controllers
     Controllers -->|5. Emit seatUpdated to room| SocketServer
     SocketServer -.->|6. Push Update to all clients in event-room| SocketClient
     SocketClient -->|7. Re-render UI| UI
