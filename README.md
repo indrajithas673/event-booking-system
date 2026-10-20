@@ -49,47 +49,25 @@
 +---------------------------------------------------------------------------------------------------+
 ```
 
-### ⚔️ What Happens When Two People Click the Same Seat at the Same Millisecond?
+### ⚔️ What Happens When Two People Click the Same Seat at the Same Time?
 
-When **User A** and **User B** attempt to select and reserve the exact same seat simultaneously:
+When **User A** and **User B** click on the exact same seat simultaneously:
 
-1. **Both HTTP Requests Hit the Backend in Parallel:**
-   * Both clients send `POST /api/events/:eventId/seats/:seatId/lock` at nearly the exact same time.
+1. **First-Come, First-Served at the Database:**
+   * Even if both click at the exact same millisecond, the database engine processes write operations sequentially.
+   * **User A (first to arrive):** Successfully acquires the lock. A 5-minute reservation countdown timer starts on their checkout screen.
+   * **User B (microsecond later):** The system detects that the seat is no longer available. Their request is immediately rejected with a clear message: *"Seat is already locked or booked by someone else."*
 
-2. **MongoDB Enforces Document-Level Serialization (Atomic CAS):**
-   * MongoDB processes writes to an individual seat document sequentially using internal write locks.
-   * Both operations execute the atomic conditional query:
-     ```javascript
-     Seat.findOneAndUpdate(
-       {
-         _id: seatId,
-         $or: [
-           { status: 'AVAILABLE' },
-           { status: 'LOCKED', lockedUntil: { $lt: new Date() } }
-         ]
-       },
-       { status: 'LOCKED', lockedBy: userId, lockedUntil: lockExpiry },
-       { new: true }
-     )
-     ```
+2. **Instant Live Map Updates (No Refresh Needed):**
+   * The moment User A secures the lock, the server broadcasts an update via WebSockets to everyone browsing that venue.
+   * The seat immediately updates to locked on User B's screen (and everyone else's map) in sub-second time.
 
-3. **User A (The Winner by Microseconds):**
-   * Arrives first; the document evaluates `{ status: 'AVAILABLE' }` as `true`.
-   * MongoDB atomically writes `status: 'LOCKED'`, assigns `lockedBy: User_A_ID`, and sets `lockedUntil` to 5 minutes in the future.
-   * The server responds with `HTTP 200 OK`, returning the locked seat payload and triggering a live 5-minute checkout countdown in User A's browser.
+3. **Guaranteed Zero Double-Booking at Checkout:**
+   * Only User A can complete the booking while holding the active lock lease.
+   * Even if User B attempts to confirm the purchase, the system rejects the booking because the seat is not reserved in their name. Only one ticket is ever generated.
 
-4. **User B (The Loser — Handled Gracefully):**
-   * Arrives microseconds later; the seat status is now `'LOCKED'` with an unexpired lease.
-   * The query condition evaluates to `false`, matching **0 documents** and returning `null`.
-   * The server intercepts this and immediately returns `HTTP 400 Bad Request` with the message:
-     ```json
-     { "success": false, "message": "Seat is already locked or booked by someone else" }
-     ```
-   * User B's UI displays an instant toast notification: *"Seat is already locked or booked by someone else"*, preventing any inconsistent state.
-
-5. **Sub-Second Real-Time Synchronization:**
-   * Upon User A's successful lock, the server broadcasts a `seatUpdated` payload to the Socket.IO room `event-${eventId}`.
-   * User B's seat map (and every other connected user's map in that venue) instantly flips that seat to yellow/gray (locked) in real time without refreshing.
+4. **Automatic Seat Recovery:**
+   * If User A closes their browser or lets the 5-minute timer expire without completing payment, the seat automatically resets to available for User B or any other attendee to grab.
 
 ---
 
