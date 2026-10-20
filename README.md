@@ -44,7 +44,7 @@
 |                                         |                                                         |
 |  User B (Selects A1) ---> [ Atomic Lock: findOneAndUpdate ] ---> Rejected ---> "Already Locked"   |
 |                                                                                                   |
-|  User A Checks Out   ---> [ State Transition: BOOKED ]      ---> Confirmed Ticket + QR Issued     |
+|  User A Checks Out   ---> [ State Transition: BOOKED ]      ---> Confirmed Ticket Issued          |
 |  User A Abandons     ---> [ TTL Timer (300s) Expires ]     ---> Auto-Reverted to AVAILABLE       |
 +---------------------------------------------------------------------------------------------------+
 ```
@@ -76,7 +76,7 @@ When **User A** and **User B** click on the exact same seat simultaneously:
 * **💺 Real-Time Interactive Seat Grid:** Dynamically generates seat layouts from custom row and column configurations ($R \times S$) with sub-second visual updates.
 * **⏱️ 5-Minute Atomic Lease Engine:** Temporary seat reservation with automatic expiration if checkout is abandoned, preventing seat hoarding.
 * **⚡ Isolated WebSocket Rooms:** Socket.IO scoped channels (`event-${eventId}`) broadcast state changes strictly to attendees viewing that specific venue, eliminating redundant network overhead.
-* **🎟️ QR Code Digital Ticketing:** Generates scannable, cryptographically unique 12-character alphanumeric tokens for swift on-site attendee check-in.
+* **🎟️ Unique Digital Ticketing:** Generates cryptographically unique 12-character alphanumeric confirmation tokens for on-site attendee check-in.
 * **🛡️ Hardened Security Perimeter:** Multi-tiered IP rate limiting, account lockout on consecutive failed attempts, Content Security Policy (Helmet), and MongoDB sanitization against NoSQL injection.
 * **📊 Role-Based Dashboards:** Dedicated operational interfaces for **Attendees**, **Organizers** (capacity utilization, revenue analytics, check-in portal), and **Admins** (system-wide user, event, and moderation controls).
 * **📖 Interactive Swagger Documentation:** Full OpenAPI 3.0 specification available out of the box at `/api-docs`.
@@ -87,7 +87,7 @@ When **User A** and **User B** click on the exact same seat simultaneously:
 
 | Layer | Technologies |
 | :--- | :--- |
-| **Frontend** | React 19, Vite, Tailwind CSS v4, Socket.IO Client, Axios, React Router DOM v7, React Hot Toast, QRCode.react, Date-fns |
+| **Frontend** | React 19, Vite, Tailwind CSS v4, Socket.IO Client, Axios, React Router DOM v7, React Hot Toast, Date-fns |
 | **Backend** | Node.js (v18+), Express 5, Socket.IO v4, Swagger UI, Multer (Memory Storage) |
 | **Database** | MongoDB, Mongoose 9 (Compound Unique Constraints & Atomic CAS) |
 | **Security & Middleware** | JSON Web Tokens (JWT), Express Rate Limit, Helmet (CSP), Express Mongo Sanitize, Morgan Logging |
@@ -192,7 +192,7 @@ The platform enforces strict Role-Based Access Control (RBAC) across three disti
 |  ------------------------------------------------------------------------------------------------- |
 |  Browse & Search Events                    ✅                     ✅                    ✅         |
 |  Interactive Seat Booking & Locks          ✅                     ✅                    ✅         |
-|  Digital QR Ticket Management              ✅                     ✅                    ✅         |
+|  Digital Ticket Management                 ✅                     ✅                    ✅         |
 |  Cancel Own Registrations                  ✅                     ✅                    ✅         |
 |  Create & Publish Events                   ❌                     ✅                    ✅         |
 |  Custom Matrix Grid Builder                ❌                     ✅                    ✅         |
@@ -207,12 +207,12 @@ The platform enforces strict Role-Based Access Control (RBAC) across three disti
 * Search and filter events by category, date range, pricing, and city.
 * Visual seat picker with live status indicators (Available, Locked, Booked, Your Selection).
 * Countdown timer alerting the buyer to complete checkout before lease expiration.
-* Ticket dashboard featuring live scannable QR codes for event check-in.
+* Ticket dashboard featuring digital tickets and unique confirmation codes for event check-in.
 
 ### 🏢 Organizer Studio
 * Visual venue builder: configure rows and seats-per-row with instant capacity calculation.
 * Manage event lifecycles through Draft, Published, and Cancelled stages.
-* Real-time check-in interface verifying attendees via 12-character ticket codes or QR scans.
+* Real-time check-in interface verifying attendees via unique 12-character confirmation codes.
 * Financial metrics: track gross revenue estimates, ticket velocity, and capacity utilization.
 
 ### 🛡️ Admin Command Center
